@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geriatría - EBS VENTAQUEMADA</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a5276">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root { --primary: #1a5276; --secondary: #0056b3; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 10px; background: var(--bg); color: #333; line-height: 1.4; }
+        .container { max-width: 900px; margin: auto; }
+        
+        .header-clinica { text-align: center; margin-bottom: 20px; border-bottom: 3px solid var(--primary); padding-bottom: 10px; }
+        h1 { color: var(--primary); margin: 0; font-size: 1.5rem; text-transform: uppercase; }
+        
+        .tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab-btn { 
+            padding: 12px 15px; border: none; background: #d5dbdb; cursor: pointer; 
+            font-weight: bold; color: #566573; border-radius: 8px 8px 0 0; transition: 0.3s; flex: 1; min-width: 100px;
+        }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        .tab-content { display: none; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h2 { color: var(--secondary); border-bottom: 2px solid #e9ecef; padding-bottom: 8px; font-size: 1.1rem; margin-top: 0; }
+        h3 { font-size: 0.9rem; color: var(--primary); margin-top: 15px; border-left: 4px solid var(--primary); padding-left: 10px; background: #f9f9f9; }
+        
+        .grid-escala { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .item-pregunta { display: flex; flex-direction: column; margin-bottom: 5px; }
+        .item-pregunta-full { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 8px 0; }
+        
+        label { font-size: 0.85rem; color: #444; padding-right: 10px; }
+        .label-bold { font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+        
+        select, input, textarea { padding: 8px; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9rem; background: white; width: 100%; box-sizing: border-box; }
+        select { cursor: pointer; min-width: 80px; width: auto; }
+        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+        
+        .interpretacion-viva { margin-top: 15px; padding: 12px; border-radius: 6px; background: #e8f4fd; border: 1px solid #b8daff; font-weight: bold; color: #004085; text-align: center; }
+
+        .acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .btn { border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        .btn-imprimir { background: var(--primary); color: white; }
+        .btn-limpiar { background: #7f8c8d; color: white; }
+        
+        #resultado-pdf { display: none; padding: 30px; background: white; }
+        .linea-firma { border-top: 1px solid #333; width: 300px; margin: 40px auto 0; text-align: center; padding-top: 5px; font-weight: bold; }
+
+        @media (max-width: 600px) { .grid-escala { grid-template-columns: 1fr; } .item-pregunta-full { flex-direction: column; align-items: flex-start; } select { width: 100%; margin-top: 5px; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-clinica">
+        <h1>Evaluación Geriátrica - Ventaquemada</h1>
+        <div style="font-style: italic; font-size: 0.9rem;">Dr. Diego José Machado Arias</div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event, 'tab-id')">PACIENTE</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-barthel')">BARTHEL</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-lawton')">LAWTON</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-mmse')">MINIMENTAL</button>
+    </div>
+
+    <div id="contenido-a-exportar">
+        <div id="tab-id" class="tab-content active">
+            <div class="card">
+                <h2>Identificación</h2>
+                <div class="grid-escala">
+                    <div class="item-pregunta"><label class="label-bold">Nombre Completo:</label><input type="text" id="nombre" oninput="guardarLocal()" placeholder="Ej: Juan Pérez"></div>
+                    <div class="item-pregunta"><label class="label-bold">Cédula:</label><input type="text" id="cedula" oninput="guardarLocal()" placeholder="Ej: 12345678"></div>
+                    <div class="item-pregunta"><label class="label-bold">Fecha Evaluación:</label><input type="date" id="fecha" oninput="guardarLocal()"></div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Observaciones Clínicas</h2>
+                <textarea id="observaciones" oninput="guardarLocal()" placeholder="Escriba aquí hallazgos relevantes..."></textarea>
+            </div>
+        </div>
+
+        <div id="tab-barthel" class="tab-content">
+            <div class="card">
+                <h2>Índice de Barthel (AVD Básicas)</h2>
+                <div class="grid-escala">
+                    <div class="item-pregunta"><label>Comer</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="10">10 - Independiente</option><option value="5">5 - Ayuda</option><option value="0">0 - Incapaz</option></select></div>
+                    <div class="item-pregunta"><label>Trasladarse</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="15">15 - Independiente</option><option value="10">10 - Ayuda mínima</option><option value="5">5 - Ayuda gran parte</option><option value="0">0 - Incapaz</option></select></div>
+                    <div class="item-pregunta"><label>Aseo Personal</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="5">5 - Independiente</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Uso del Retrete</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="10">10 - Independiente</option><option value="5">5 - Ayuda</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Bañarse</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="5">5 - Independiente</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Caminar</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="15">15 - Independiente</option><option value="10">10 - Ayuda física</option><option value="5">5 - Silla de ruedas</option><option value="0">0 - Inmóvil</option></select></div>
+                    <div class="item-pregunta"><label>Escaleras</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="10">10 - Independiente</option><option value="5">5 - Ayuda</option><option value="0">0 - Incapaz</option></select></div>
+                    <div class="item-pregunta"><label>Vestirse</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="10">10 - Independiente</option><option value="5">5 - Ayuda</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Control Heces</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="10">10 - Continente</option><option value="5">5 - Accidental</option><option value="0">0 - Incontinente</option></select></div>
+                    <div class="item-pregunta"><label>Control Orina</label><select class="barthel save-select" onchange="actualizarTodo()"><option value="10">10 - Continente</option><option value="5">5 - Accidental</option><option value="0">0 - Incontinente</option></select></div>
+                </div>
+                <div id="res-barthel" class="interpretacion-viva"></div>
+            </div>
+        </div>
+
+        <div id="tab-lawton" class="tab-content">
+            <div class="card">
+                <h2>Escala de Lawton y Brody (AVD Instrumentales)</h2>
+                <div class="grid-escala">
+                    <div class="item-pregunta"><label>Teléfono</label><select class="lawton save-select" onchange="actualizarTodo()"><option value="1">1 - Independiente</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Compras</label><select class="lawton save-select" onchange="actualizarTodo()"><option value="1">1 - Independiente</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Cocina</label><select class="lawton save-select" onchange="actualizarTodo()"><option value="1">1 - Independiente</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Cuidado Casa</label><select class="lawton save-select" onchange="actualizarTodo()"><option value="1">1 - Independiente</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Lavado Ropa</label><select class="lawton save-select" onchange="actualizarTodo()"><option value="1">1 - Independiente</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Transporte</label><select class="lawton save-select" onchange="actualizarTodo()"><option value="1">1 - Independiente</option><option value="0">0 - Dependiente</option></select></div>
+                    <div class="item-pregunta"><label>Medicación</label><select class="lawton save-select" onchange="actualizarTodo()"><option value="1">1 - Responsable</option><option value="0">0 - No capaz</option></select></div>
+                    <div class="item-pregunta"><label>Economía</label><select class="lawton save-select" onchange="actualizarTodo()"><option value="1">1 - Independiente</option><option value="0">0 - Incapaz</option></select></div>
+                </div>
+                <div id="res-lawton" class="interpretacion-viva"></div>
+            </div>
+        </div>
+
+        <div id="tab-mmse" class="tab-content">
+            <div class="card">
+                <h2>Mini-Mental State Examination (MMSE)</h2>
+                
+                <h3>Orientación (10 pts)</h3>
+                <div class="item-pregunta-full"><label>Temporal: Año, Mes, Día, Día semana, Estación</label><select class="mmse save-select" onchange="actualizarTodo()"><option value="5">5 pts</option><option value="4">4 pts</option><option value="3">3 pts</option><option value="2">2 pts</option><option value="1">1 pt</option><option value="0">0 pts</option></select></div>
+                <div class="item-pregunta-full"><label>Espacial: Lugar, Planta, Ciudad, Provincia, País</label><select class="mmse save-select" onchange="actualizarTodo()"><option value="5">5 pts</option><option value="4">4 pts</option><option value="3">3 pts</option><option value="2">2 pts</option><option value="1">1 pt</option><option value="0">0 pts</option></select></div>
+
+                <h3>Fijación y Memoria (6 pts)</h3>
+                <div class="item-pregunta-full"><label>Registro Inmediato (Balón, Bandera, Árbol)</label><select class="mmse save-select" onchange="actualizarTodo()"><option value="3">3 pts</option><option value="2">2 pts</option><option value="1">1 pt</option><option value="0">0 pts</option></select></div>
+                <div class="item-pregunta-full"><label>Recuerdo Diferido (Palabras previas)</label><select class="mmse save-select" onchange="actualizarTodo()"><option value="3">3 pts</option><option value="2">2 pts</option><option value="1">1 pt</option><option value="0">0 pts</option></select></div>
+
+                <h3>Atención y Cálculo (5 pts)</h3>
+                <div class="item-pregunta-full"><label>Series de 7 o Deletrear MUNDO al revés</label><select class="mmse save-select" onchange="actualizarTodo()"><option value="5">5 pts</option><option value="4">4 pts</option><option value="3">3 pts</option><option value="2">2 pts</option><option value="1">1 pt</option><option value="0">0 pts</option></select></div>
+
+                <h3>Lenguaje y Praxis (9 pts)</h3>
+                <div class="item-pregunta-full"><label>Nominación (Reloj y Bolígrafo)</label><select class="mmse save-select" onchange="actualizarTodo()"><option value="2">2 pts</option><option value="1">1 pt</option><option value="0">0 pts</option></select></div>
+                <div class="item-pregunta-full"><label>Repetición ("Ni sí, ni no, ni pero")</label><select class="mmse save-select" onchange="actualizarTodo()"><option value="1">1 pt</option><option value="0">0 pts</option></select></div>
+                <div class="item-pregunta-full"><label>Órdenes (Tome papel, doble, suelo)</label><select class="mmse save-select" onchange="actualizarTodo()"><option value="3">3 pts</option><option value="2">2 pts</option><option value="1">1 pt</option><option value="0">0 pts</option></select></div>
+                <div class="item-pregunta-full"><label>Lectura, Escritura y Dibujo</label><select class="mmse save-select" onchange="actualizarTodo()"><option value="3">3 pts</option><option value="2">2 pts</option><option value="1">1 pt</option><option value="0">0 pts</option></select></div>
+
+                <div id="res-mmse" class="interpretacion-viva"></div>
+            </div>
+        </div>
+
+        <div id="resultado-pdf">
+            <h2 style="text-align:center; color:#1a5276; border-bottom: 2px solid #1a5276; padding-bottom: 10px;">INFORME DE EVALUACIÓN GERIÁTRICA INTEGRAL</h2>
+            <div id="pdf-body"></div>
+            <div class="linea-firma">Dr. Diego José Machado Arias<br>Médico Evaluador - EBS Ventaquemada</div>
+        </div>
+    </div>
+
+    <div class="acciones">
+        <button class="btn btn-limpiar" onclick="limpiarForm()">Reiniciar</button>
+        <button class="btn btn-imprimir" onclick="generarPDF()">Generar Informe PDF</button>
+    </div>
+</div>
+
+<script>
+    // Registro de Service Worker para PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('Error SW', err));
+        });
+    }
+
+    function openTab(evt, tabName) {
+        document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
+        document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    function clasificarBarthel(p) { return p === 100 ? "Independencia" : p >= 60 ? "Dep. Leve" : p >= 40 ? "Dep. Moderada" : p >= 20 ? "Dep. Severa" : "Dep. Total"; }
+    function clasificarLawton(p) { return p >= 8 ? "Independencia Total" : p >= 4 ? "Dep. Leve/Mod" : "Dep. Severa"; }
+    function clasificarMMSE(p) { return p >= 27 ? "Normal" : p >= 24 ? "Deterioro Sospecha" : p >= 18 ? "Deterioro Leve-Mod" : "Deterioro Severo"; }
+
+    function actualizarTodo() {
+        let b = 0; document.querySelectorAll('.barthel').forEach(s => b += parseInt(s.value));
+        document.getElementById('res-barthel').innerText = `Barthel: ${b}/100 - ${clasificarBarthel(b)}`;
+        let l = 0; document.querySelectorAll('.lawton').forEach(s => l += parseInt(s.value));
+        document.getElementById('res-lawton').innerText = `Lawton: ${l}/8 - ${clasificarLawton(l)}`;
+        let m = 0; document.querySelectorAll('.mmse').forEach(s => m += parseInt(s.value));
+        document.getElementById('res-mmse').innerText = `MMSE: ${m}/30 - ${clasificarMMSE(m)}`;
+        guardarLocal();
+    }
+
+    function guardarLocal() {
+        const datos = {
+            nombre: document.getElementById('nombre').value,
+            cedula: document.getElementById('cedula').value,
+            fecha: document.getElementById('fecha').value,
+            obs: document.getElementById('observaciones').value,
+            selects: Array.from(document.querySelectorAll('.save-select')).map(s => s.selectedIndex)
+        };
+        localStorage.setItem('datosGeriata_Ventaquemada', JSON.stringify(datos));
+    }
+
+    function cargarLocal() {
+        const guardado = localStorage.getItem('datosGeriata_Ventaquemada');
+        if (guardado) {
+            const d = JSON.parse(guardado);
+            document.getElementById('nombre').value = d.nombre || "";
+            document.getElementById('cedula').value = d.cedula || "";
+            document.getElementById('fecha').value = d.fecha || "";
+            document.getElementById('observaciones').value = d.obs || "";
+            const selects = document.querySelectorAll('.save-select');
+            if(d.selects) d.selects.forEach((idx, i) => { if(selects[i]) selects[i].selectedIndex = idx; });
+        }
+        actualizarTodo();
+    }
+
+    function generarPDF() {
+        actualizarTodo();
+        const nombre = (document.getElementById('nombre').value || "Sin_Nombre").trim().replace(/ /g, "_");
+        const cedula = (document.getElementById('cedula').value || "0000").trim();
+        const fecha = document.getElementById('fecha').value || new Date().toLocaleDateString();
+        const obs = document.getElementById('observaciones').value || "Sin observaciones adicionales.";
+
+        let b = 0; document.querySelectorAll('.barthel').forEach(s => b += parseInt(s.value));
+        let l = 0; document.querySelectorAll('.lawton').forEach(s => l += parseInt(s.value));
+        let m = 0; document.querySelectorAll('.mmse').forEach(s => m += parseInt(s.value));
+
+        document.querySelectorAll(".tab-content").forEach(tab => tab.style.display = "block");
+        const resPdf = document.getElementById('resultado-pdf');
+        resPdf.style.display = 'block';
+
+        document.getElementById('pdf-body').innerHTML = `
+            <table style="width:100%; margin-bottom: 20px; font-size: 0.9rem;">
+                <tr><td style="padding:4px;"><strong>PACIENTE:</strong> ${nombre.replace(/_/g, " ")}</td><td style="padding:4px;"><strong>CÉDULA:</strong> ${cedula}</td></tr>
+                <tr><td style="padding:4px;"><strong>FECHA:</strong> ${fecha}</td><td style="padding:4px;"><strong>CENTRO:</strong> EBS VENTAQUEMADA</td></tr>
+            </table>
+            <hr>
+            <div style="margin-top:15px;">
+                <p><strong>1. ÍNDICE DE BARTHEL:</strong> ${b}/100 - <strong>${clasificarBarthel(b)}</strong></p>
+                <p><strong>2. ESCALA DE LAWTON:</strong> ${l}/8 - <strong>${clasificarLawton(l)}</strong></p>
+                <p><strong>3. MINI-MENTAL (MMSE):</strong> ${m}/30 - <strong>${clasificarMMSE(m)}</strong></p>
+            </div>
+            <div style="margin-top:20px; padding:10px; border:1px solid #ddd; background:#f9f9f9;">
+                <h4 style="margin-top:0; color:#1a5276;">Observaciones y Plan:</h4>
+                <p style="white-space: pre-wrap; font-size: 0.9rem;">${obs}</p>
+            </div>
+        `;
+
+        const opt = {
+            margin: 0.5,
+            filename: `${nombre}_${cedula}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, scrollY: 0 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(document.getElementById('resultado-pdf')).save().then(() => {
+            resPdf.style.display = 'none';
+            document.querySelectorAll(".tab-content").forEach(tab => tab.style.display = "");
+            const activeTab = document.querySelector('.tab-btn.active').getAttribute('onclick').match(/'([^']+)'/)[1];
+            document.querySelectorAll(".tab-content").forEach(t => t.classList.remove('active'));
+            document.getElementById(activeTab).classList.add('active');
+        });
+    }
+
+    function limpiarForm() { 
+        if(confirm("¿Desea borrar todos los datos del paciente?")) {
+            localStorage.removeItem('datosGeriata_Ventaquemada');
+            location.reload(); 
+        }
+    }
+
+    window.onload = () => {
+        if(!document.getElementById('fecha').value) document.getElementById('fecha').valueAsDate = new Date();
+        cargarLocal();
+    };
+</script>
+</body>
+</html>
